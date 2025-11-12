@@ -86,6 +86,12 @@ builder.Services.AddCors(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenAnyIP(5007);           // HTTP on any interface
+    options.ListenAnyIP(7122, listenOptions => listenOptions.UseHttps()); // HTTPS on any interface
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
