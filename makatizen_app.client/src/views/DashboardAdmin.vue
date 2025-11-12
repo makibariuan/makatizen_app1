@@ -14,7 +14,6 @@
         Welcome back, {{ userRole }}. Use the sections below to manage users and citizen data.
       </p>
 
-      <!-- ========== USER TABLES (Kit/System Users) ========== -->
       <section v-if="activeView === 'kitUsers' || activeView === 'systemUsers'">
         <h2 class="section-title">{{ activeView === 'kitUsers' ? 'Kit Users' : 'System Users' }}</h2>
         <button class="add-btn" @click="openAddForm">+ Add User</button>
@@ -40,9 +39,25 @@
             </tr>
           </tbody>
         </table>
+
+        <!-- Add/Edit Form -->
+        <div v-if="showForm" class="form-overlay">
+          <div class="form-container">
+            <h3>{{ editingUser ? 'Edit User' : 'Add New User' }}</h3>
+            <form @submit.prevent="saveUser">
+              <label>Username</label>
+              <input v-model="form.username" required />
+
+              <label>Password</label>
+              <input v-model="form.password" type="password" :required="!editingUser" />
+
+              <button type="submit" class="save-btn">Save</button>
+              <button type="button" class="cancel-btn" @click="closeForm">Cancel</button>
+            </form>
+          </div>
+        </div>
       </section>
 
-      <!-- ========== CITIZEN RECORDS ========== -->
       <section v-else-if="activeView === 'citizenRecords'">
         <h2 class="section-title">Citizen Records</h2>
         <p class="metric-number">{{ metrics.citizenCount }}</p>
@@ -51,35 +66,9 @@
         <button class="action-button success">View Citizen Records</button>
       </section>
 
-      <!-- ========== MODERN ADD/EDIT USER MODAL ========== -->
-      <div v-if="showForm" class="form-overlay">
-        <div class="form-popup">
-          <h3>{{ editingUser ? 'Edit User' : 'Create New User' }}</h3>
-          <form @submit.prevent="saveUser">
-            <label>Username</label>
-            <input v-model="form.username" required />
-
-            <label>Password</label>
-            <input v-model="form.password" type="password" :required="!editingUser" />
-
-            <label>Role</label>
-            <select v-model="form.role" required>
-              <option value="SystemUser">System User</option>
-              <option value="KitUser">Kit User</option>
-            </select>
-
-            <div class="form-actions">
-              <button type="submit" class="save-btn">Save</button>
-              <button type="button" class="cancel-btn" @click="closeForm">Cancel</button>
-            </div>
-          </form>
-        </div>
-      </div>
-
       <div v-if="loading" class="loading-overlay">
         <p>Loading data...</p>
       </div>
-
       <div v-if="error" class="error-box">
         <p>{{ error }}</p>
       </div>
@@ -177,21 +166,14 @@
           : 'https://localhost:7288/api/User';
 
         try {
-          const response = await fetch(url, {
+          await fetch(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(this.form)
           });
-
-          if (!response.ok) throw new Error('Failed to save user');
-
           await this.fetchUsers(this.activeView);
           this.showForm = false;
-          this.editingUser = null;
-
-          alert('✅ User saved successfully!');
         } catch (err) {
-          console.error(err);
           this.error = 'Failed to save user.';
         }
       },
@@ -206,15 +188,7 @@
         }
       },
       closeForm() {
-        const overlay = document.querySelector('.form-overlay');
-        if (overlay) {
-          overlay.classList.add('fade-out');
-          setTimeout(() => {
-            this.showForm = false;
-          }, 250); // matches CSS transition
-        } else {
-          this.showForm = false;
-        }
+        this.showForm = false;
       },
       toggleSidebar() {
         this.sidebarOpen = !this.sidebarOpen;
@@ -224,31 +198,58 @@
 </script>
 
 <style scoped>
-  /* ------------------- MAIN LAYOUT ------------------- */
   .dashboard-wrapper {
     display: flex;
     min-height: 100vh;
     width: 100vw;
     margin: 0;
     padding: 0;
-    background: linear-gradient(135deg, #e6f4f1, #f9ffff);
+    background-color: #f7fafc;
+    border-radius: 0;
+    box-sizing: border-box;
+    box-shadow: none;
     overflow-x: hidden;
+    position: relative;
   }
+
+  .sidebar-toggle {
+    position: fixed;
+    top: 80px;
+    left: 15px;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 28px;
+    height: 22px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+
+    .sidebar-toggle .bar {
+      height: 4px;
+      background-color: #fff;
+      border-radius: 2px;
+      transition: all 0.3s ease;
+    }
 
   .dashboard-container {
     flex-grow: 1;
     padding: 40px 35px;
     overflow-y: auto;
+    position: relative;
     font-family: 'Inter', sans-serif;
     color: #2d3748;
   }
 
-  /* ------------------- HEADER ------------------- */
   .welcome-title {
     font-size: 2.8rem;
     font-weight: 800;
     margin-bottom: 10px;
     color: #004d4d;
+    letter-spacing: 0.5px;
   }
 
   .role-info {
@@ -259,7 +260,6 @@
     padding-bottom: 20px;
   }
 
-  /* ------------------- TABLE ------------------- */
   .section-title {
     font-weight: 700;
     color: #2d3748;
@@ -267,168 +267,130 @@
     margin-bottom: 20px;
   }
 
+  .add-btn,
+  .save-btn,
+  .cancel-btn,
+  .edit-btn,
+  .delete-btn,
+  .action-button {
+    border-radius: 8px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
   .add-btn {
     background: #008080;
     color: #fff;
     padding: 12px 20px;
     border: none;
-    border-radius: 10px;
     cursor: pointer;
-    font-weight: 700;
-    box-shadow: 0 4px 15px rgba(0, 128, 128, 0.25);
-    transition: all 0.3s ease;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0, 128, 128, 0.3);
   }
 
     .add-btn:hover {
-      background: #006666;
-      transform: translateY(-2px);
+      background: #005959;
+      box-shadow: 0 6px 15px rgba(0, 89, 89, 0.5);
+    }
+
+  .save-btn {
+    background: #22c55e;
+    color: white;
+    padding: 12px 22px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
+  }
+
+    .save-btn:hover {
+      background: #16a34a;
+      box-shadow: 0 6px 18px rgba(22, 163, 74, 0.5);
+    }
+
+  .cancel-btn {
+    background: #94a3b8;
+    color: white;
+    border: none;
+    cursor: pointer;
+    padding: 12px 22px;
+    margin-left: 15px;
+  }
+
+    .cancel-btn:hover {
+      background: #64748b;
+    }
+
+  .edit-btn {
+    background: #0ea5e9;
+    color: white;
+    padding: 8px 14px;
+  }
+
+    .edit-btn:hover {
+      background: #0284c7;
+    }
+
+  .delete-btn {
+    background: #ef4444;
+    color: white;
+    padding: 8px 14px;
+  }
+
+    .delete-btn:hover {
+      background: #b91c1c;
     }
 
   .user-table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0 10px;
-    margin-top: 20px;
+    margin-bottom: 50px;
   }
 
     .user-table th {
       text-align: left;
-      padding: 12px;
+      padding: 18px 15px;
       color: #475569;
+      font-weight: 700;
     }
 
     .user-table td {
       background: white;
       padding: 15px;
+      box-shadow: 0 4px 6px rgb(160 174 192 / 15%);
       border-radius: 8px;
-      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+      vertical-align: middle;
+      color: #334155;
     }
 
-  /* ------------------- POPUP MODAL ------------------- */
-  .form-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(10, 20, 25, 0.4);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
-    backdrop-filter: blur(6px);
-    opacity: 1;
-    transition: opacity 0.25s ease;
-  }
-
-    .form-overlay.fade-out {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-  .form-popup {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(12px);
-    padding: 35px 40px;
-    border-radius: 20px;
-    width: 90%;
-    max-width: 450px;
-    box-shadow: 0 10px 30px rgba(0, 128, 128, 0.25);
-    animation: popupIn 0.25s ease forwards;
-    border: 2px solid rgba(0, 128, 128, 0.15);
-  }
-
-
-  @keyframes popupIn {
-    from {
-      transform: translateY(-20px);
-      opacity: 0;
-    }
-
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-
-  .form-popup h3 {
-    text-align: center;
-    margin-bottom: 25px;
-    color: #004d4d;
-    font-weight: 700;
-  }
-
-  .form-popup label {
-    display: block;
-    font-weight: 600;
-    margin-top: 10px;
-    color: #334155;
-  }
-
-  .form-popup input,
-  .form-popup select {
-    width: 100%;
-    padding: 12px 15px;
-    border-radius: 10px;
+  form input {
     border: 1.5px solid #cbd5e1;
+    padding: 12px 15px;
+    border-radius: 8px;
     font-size: 1rem;
-    margin-top: 6px;
     transition: border-color 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 6px;
   }
 
-    .form-popup input:focus,
-    .form-popup select:focus {
+    form input:focus {
       outline: none;
       border-color: #008080;
-      box-shadow: 0 0 8px rgba(0, 128, 128, 0.3);
+      box-shadow: 0 0 6px #008080aa;
     }
 
-  .form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 25px;
+  .form-overlay,
+  .loading-overlay {
+    backdrop-filter: blur(4px);
   }
 
-  /* ------------------- BUTTONS ------------------- */
-  .save-btn {
-    background: #22c55e;
-    color: #fff;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 10px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-
-    .save-btn:hover {
-      background: #16a34a;
-      transform: scale(1.05);
+    .loading-overlay p {
+      color: #008080;
+      font-size: 1.2rem;
+      font-weight: 700;
     }
-
-  .cancel-btn {
-    background: #94a3b8;
-    color: #fff;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 10px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-
-    .cancel-btn:hover {
-      background: #64748b;
-      transform: scale(1.05);
-    }
-
-  /* ------------------- ERROR / LOADING ------------------- */
-  .loading-overlay p {
-    color: #008080;
-    font-size: 1.2rem;
-    font-weight: 700;
-  }
 
   .error-box {
     background: #fee2e2;
@@ -439,5 +401,26 @@
     font-weight: 600;
     border: 1px solid #fca5a5;
     text-align: center;
+  }
+
+  @media (max-width: 768px) {
+    .dashboard-wrapper {
+      flex-direction: column;
+    }
+
+    .sidebar {
+      width: 100%;
+      height: auto;
+      border-radius: 0 0 10px 10px;
+    }
+
+    .dashboard-container {
+      padding: 1rem 1.5rem;
+    }
+
+    .sidebar-toggle {
+      top: 10px;
+      left: 10px;
+    }
   }
 </style>
