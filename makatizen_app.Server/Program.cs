@@ -1,0 +1,100 @@
+using Microsoft.EntityFrameworkCore;
+using makatizen_app.Server.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using makatizen_app.Server.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// --- Database Configuration ---
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// Ensure your AppDbContext file is created in the Data folder!
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(connectionString));
+// ------------------------------
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection("Smtp"));
+builder.Services.AddTransient<IEmailService, EmailService>();
+
+
+builder.Services.AddControllers();
+
+// --- START JWT CONFIGURATION ---
+var jwtSection = builder.Configuration.GetSection("Jwt");
+var secretKey = jwtSection["Key"] ?? throw new ArgumentNullException("JWT Key not found in configuration.");
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSection["Issuer"],
+        ValidAudience = jwtSection["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+// Authorization Policies based on UserType: 1 = Super Admin, 2 = System User, 3 = Kit User
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("RequireSuperAdmin", policy => policy.RequireClaim("UserType", "1"));
+    options.AddPolicy("RequireSystemUser", policy => policy.RequireClaim("UserType", "2"));
+    options.AddPolicy("RequireKitUser", policy => policy.RequireClaim("UserType", "3"));
+    // Policy for any System/Kit user (e.g., CRUD Citizen)
+    options.AddPolicy("RequireAdminOrKit", policy => policy.RequireClaim("UserType", "1", "2", "3"));
+});
+
+// --- END JWT CONFIGURATION ---
+
+
+// Add CORS policy for Vue.js frontend
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("VueAppPolicy",
+        policy =>
+        {
+            // Update origins to match your Vue.js dev server URL
+            policy.WithOrigins(
+                "http://localhost:5173",
+                "http://localhost:8080",
+                "https://localhost:58217",
+                "https://localhost:7132"
+            )
+           
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+        });
+});
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+app.UseCors("VueAppPolicy");
+
+// MUST be before UseAuthorization
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();

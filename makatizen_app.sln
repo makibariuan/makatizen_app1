@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35825.156 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "makatizen_app.client", "makatizen_app.client\makatizen_app.client.esproj", "{54D6AFEB-463D-C285-A6FD-97E5EBC332E4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "makatizen_app.Server", "makatizen_app.Server\makatizen_app.Server.csproj", "{1A602DE0-5398-45C6-84E2-B5AB8F4C7045}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{54D6AFEB-463D-C285-A6FD-97E5EBC332E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54D6AFEB-463D-C285-A6FD-97E5EBC332E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54D6AFEB-463D-C285-A6FD-97E5EBC332E4}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{54D6AFEB-463D-C285-A6FD-97E5EBC332E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54D6AFEB-463D-C285-A6FD-97E5EBC332E4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{54D6AFEB-463D-C285-A6FD-97E5EBC332E4}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{1A602DE0-5398-45C6-84E2-B5AB8F4C7045}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A602DE0-5398-45C6-84E2-B5AB8F4C7045}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A602DE0-5398-45C6-84E2-B5AB8F4C7045}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A602DE0-5398-45C6-84E2-B5AB8F4C7045}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {546E1691-97F3-453F-AA9B-96C97057BC75}
+	EndGlobalSection
+EndGlobal
