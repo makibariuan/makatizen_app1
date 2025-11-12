@@ -17,7 +17,7 @@
 
 
     // --- Password Reset DTOs ---
-    public class ResetPasswordRequest
+    public class ResetPasswordRequestDTO
     {
         public string Username { get; set; } = string.Empty;
         public string CurrentPassword { get; set; } = string.Empty;

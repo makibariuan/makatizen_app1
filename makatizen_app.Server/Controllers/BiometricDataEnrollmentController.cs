@@ -1,5 +1,6 @@
 ﻿using makatizen_app.Server.Data;
 using makatizen_app.Server.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -8,63 +9,87 @@ using System.Threading.Tasks;
 
 namespace makatizen_app.Server.Controllers
 {
-    // Sets the base route for the controller to /api/BiometricDataEnrollments
-    [Route("api/[controller]")]
-    [ApiController] // Indicates that this class is an API controller
+    [ApiController]
+    [Route("api/kitusers/citizen/[controller]")]
+
+    [Authorize]
     public class BiometricDataEnrollmentsController : ControllerBase
     {
         private readonly AppDbContext _context;
 
-        // Constructor for Dependency Injection (injects the DbContext)
         public BiometricDataEnrollmentsController(AppDbContext context)
         {
             _context = context;
         }
 
-        // --- GET: api/BiometricDataEnrollments (Retrieve all records) ---
+        // --- GET:(Retrieve all records) ---
+        // NOTE: Returning the raw entity here may cause a JSON cycle if the BiometricDataEnrollment model
+        // includes a navigation property back to Citizen. It is recommended to use BiometricReadDto instead.
         [HttpGet]
         public async Task<ActionResult<IEnumerable<BiometricDataEnrollment>>> GetBiometricDataEnrollments()
         {
-            // The method name should match the name of the DbSet in your DbContext
-            return await _context.BiometricDataEnrollments.ToListAsync();
+            return await _context.BiometricEnrollments.ToListAsync();
         }
 
-        // --- GET: api/BiometricDataEnrollments/5 (Retrieve a single record by ID) ---
+        // PersonId = CitizenId
+        [HttpGet("citizen/{personId}")]
+        public async Task<ActionResult<IEnumerable<BiometricDataEnrollment>>> GetEnrollmentsByCitizenId(int personId)
+        {
+            var enrollments = await _context.BiometricEnrollments
+                .Where(e => e.PersonId == personId)
+                .OrderByDescending(e => e.DateCapture)
+                .ToListAsync();
+
+            if (!enrollments.Any())
+            {
+                return NotFound($"No biometric enrollments found for Citizen ID {personId}.");
+            }
+
+            return enrollments;
+        }
+
+        // --- GET:(Retrieve a single record by ID) ---
+        // NOTE: Returning the raw entity here may cause a JSON cycle. Use DTOs if required.
         [HttpGet("{id}")]
         public async Task<ActionResult<BiometricDataEnrollment>> GetBiometricDataEnrollment(int id)
         {
-            var enrollment = await _context.BiometricDataEnrollments.FindAsync(id);
+            var enrollment = await _context.BiometricEnrollments.FindAsync(id);
 
             if (enrollment == null)
             {
-                return NotFound(); // HTTP 404
+                return NotFound();
             }
 
-            return enrollment; // HTTP 200 with the enrollment data
+            return enrollment;
         }
 
-        // --- POST: api/BiometricDataEnrollments (Create a new record) ---
+        // --- POST:(Create a new record) ---
         [HttpPost]
         public async Task<ActionResult<BiometricDataEnrollment>> PostBiometricDataEnrollment(BiometricDataEnrollment enrollment)
         {
-            _context.BiometricDataEnrollments.Add(enrollment);
+            if (enrollment.PersonId <= 0)
+            {
+                return BadRequest("The PersonId field is required and must be valid.");
+            }
+
+            // NOTE: In a production app, you would likely use a DTO here (e.g., BiometricCreateDto) 
+            // to prevent over-posting and then map it to the model.
+            _context.BiometricEnrollments.Add(enrollment);
             await _context.SaveChangesAsync();
 
-            // Returns a 201 Created status, including the new object and a URI to access it
             return CreatedAtAction(nameof(GetBiometricDataEnrollment), new { id = enrollment.Id }, enrollment);
         }
 
-        // --- PUT: api/BiometricDataEnrollments/5 (Update an existing record) ---
+        // --- PUT:(Update an existing record) ---
         [HttpPut("{id}")]
         public async Task<IActionResult> PutBiometricDataEnrollment(int id, BiometricDataEnrollment enrollment)
         {
-            // Check if the ID in the route matches the ID in the body
             if (id != enrollment.Id)
             {
-                return BadRequest(); // HTTP 400
+                return BadRequest();
             }
-
-            // Tell EF Core to treat the entity as modified
+            // NOTE: For safety and performance, a better approach is to fetch the existing entity, 
+            // update only the allowed properties, and save changes, rather than setting the EntityState to Modified.
             _context.Entry(enrollment).State = EntityState.Modified;
 
             try
@@ -83,29 +108,29 @@ namespace makatizen_app.Server.Controllers
                 }
             }
 
-            return NoContent(); // HTTP 204 (Success, no content to return)
+            return NoContent();
         }
 
-        // --- DELETE: api/BiometricDataEnrollments/5 (Delete a record) ---
+        // --- DELETE:(Delete a record) ---
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBiometricDataEnrollment(int id)
         {
-            var enrollment = await _context.BiometricDataEnrollments.FindAsync(id);
+            var enrollment = await _context.BiometricEnrollments.FindAsync(id);
             if (enrollment == null)
             {
                 return NotFound();
             }
 
-            _context.BiometricDataEnrollments.Remove(enrollment);
+            _context.BiometricEnrollments.Remove(enrollment);
             await _context.SaveChangesAsync();
 
-            return NoContent(); // HTTP 204
+            return NoContent();
         }
 
-        // --- Private Helper Method ---
+        // Private helper method
         private bool BiometricDataEnrollmentExists(int id)
         {
-            return _context.BiometricDataEnrollments.Any(e => e.Id == id);
+            return _context.BiometricEnrollments.Any(e => e.Id == id);
         }
     }
 }

@@ -48,17 +48,37 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #e9ecef; /* Light gray background for the overall app */
     min-height: 100vh;
+    overflow-x: hidden; /* Prevent horizontal scroll */
   }
 
   #app {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    box-sizing: border-box;
+  }
+
+  .navbar {
+    margin: 0;             /* Remove any margin */
+    padding-bottom: 15px;  /* Keep horizontal padding, adjust bottom if needed */
+    box-sizing: border-box;
   }
 
   main {
-    flex-grow: 1; /* Allows the main content area to fill the remaining space */
-    padding: 20px 0; /* Padding for content below the navbar */
+    flex-grow: 1;          /* Allows the main content area to fill remaining space */
+    margin: 0;             /* Remove margin */
+    padding:0;       /* Padding for content below the navbar */
+  }
+
+  .dashboard-wrapper {
+    margin-top: 0;         /* Remove any top margin */
+    padding-top: 0;        /* Remove any top padding */
+    width: 100vw;
+    min-height: 100vh;
+    box-sizing: border-box;
   }
 
   /* Specific style for login/reset pages to use the full screen layout */
@@ -69,3 +89,4 @@
     align-items: center;
   }
 </style>
+
