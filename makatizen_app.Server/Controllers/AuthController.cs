@@ -92,6 +92,8 @@ namespace makatizen_app.Server.Controllers
                 new Claim(ClaimTypes.NameIdentifier, userId),
                 new Claim(ClaimTypes.Role, roleName),
                 new Claim("UserType", userType)
+                //firstName, lastName
+
             };
 
             var tokenDescriptor = new SecurityTokenDescriptor

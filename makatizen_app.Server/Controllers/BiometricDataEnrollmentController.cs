@@ -11,9 +11,9 @@ namespace makatizen_app.Server.Controllers
 {
     [ApiController]
     [Route("api/kitusers/citizen/[controller]")]
+    [Authorize]
 
-    //[Authorize]
-    [AllowAnonymous]
+    //[AllowAnonymous]
     public class BiometricDataEnrollmentsController : ControllerBase
     {
         private readonly AppDbContext _context;

@@ -12,7 +12,7 @@ namespace makatizen_app.Server.Controllers
     [Route("api/admin/kitusers")]
     
     //[Authorize(Policy = "RequireSuperAdminOrSystemUser")]
-    [AllowAnonymous]
+    [Authorize]
     public class KitUsersController : ControllerBase
     {
         private readonly AppDbContext _context;

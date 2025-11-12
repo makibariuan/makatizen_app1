@@ -14,8 +14,8 @@ namespace makatizen_app.Server.Controllers
     [ApiController]
     [Route("api/kitusers/[controller]")]
 
-    //[Authorize]
-    [AllowAnonymous] 
+    [Authorize]
+    //[AllowAnonymous] 
     public class CitizenController : ControllerBase
     {
         private readonly AppDbContext _context;

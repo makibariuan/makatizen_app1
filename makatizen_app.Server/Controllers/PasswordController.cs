@@ -13,7 +13,7 @@ namespace makatizen_app.Server.Controllers
     [Route("api/[controller]")]
 
     //use for auth  
-    //[Authorize]
+    [Authorize]
     public class PasswordController : ControllerBase
     {
         private readonly AppDbContext _context;
