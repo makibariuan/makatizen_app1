@@ -53,7 +53,7 @@ export default {
     justify-content: space-between;
     align-items: center;
     padding: 15px 30px;
-    background-color: #006666;
+    background-color: #004d99; /* Darker blue from the welcome title */
     color: white;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
     position: sticky;
@@ -83,7 +83,7 @@ export default {
     display: flex;
     align-items: center;
     padding: 8px 15px;
-    background-color: #27ae60;
+    background-color: #dc3545; /* Red color for Logout */
     color: white;
     border: none;
     border-radius: 4px;
@@ -93,13 +93,12 @@ export default {
   }
 
     .logout-button:hover {
-      background-color: #1e874b;
+      background-color: #c82333;
     }
 
   .icon {
     width: 18px;
     height: 18px;
     margin-left: 8px;
-    fill: white; /* ensures logout icon is white */
   }
 </style>

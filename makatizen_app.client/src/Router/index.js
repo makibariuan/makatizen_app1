@@ -4,9 +4,11 @@ import AuthService from '@/services/AuthService'; // Import the service
 // --- Import ACTUAL Views ---
 import LoginView from '@/components/Login.vue';
 import PasswordResetView from '@/components/PasswordReset.vue';
-import DashboardAdmin from '@/views/DashboardAdmin.vue';
+import DashboardAdmin from '@/components/DashboardAdmin.vue';
 import DashboardKit from '@/components/DashboardKit.vue';
+import KitUsersManagement from '@/components/KitUsersView.vue'; // <-- NEW IMPORT
 import NotFound from '@/components/NotFound.vue'; // Catch-all 404
+import KitUsersViewVue from '../components/KitUsersView.vue';
 
 const routes = [
   {
@@ -60,6 +62,16 @@ const routes = [
       roles: ['Super Admin', 'System User'] // Matching roles from AuthService
     }
   },
+ 
+  {
+    path: '/admin/kit-users',
+    name: 'KitUsersManagement',
+    component: KitUsersViewVue,
+    meta: {
+      requiresAuth: true,
+      roles: ['Super Admin', 'System User'] // Only Super Admin and System User can manage kit users
+    }
+  },
   {
     path: '/kit/dashboard',
     name: 'DashboardKit',
@@ -74,18 +86,7 @@ const routes = [
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: NotFound
-  },
-  //{
-  //  path: '/manage-system-users',
-  //  name: 'ManageSystemUsers',
-  //  component: () => import('@/views/ManageSystemUsers.vue')
-  //},
-  //{
-  //  path: '/manage-kit-users',
-  //  name: 'ManageKitUsers',
-  //  component: () => import('@/views/ManageKitUsers.vue')
-  //}
-
+  }
 ];
 
 const router = createRouter({

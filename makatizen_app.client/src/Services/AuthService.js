@@ -65,15 +65,10 @@ const AuthService = {
       throw new Error(message);
     }
   },
-
-  /**
-   * Clears all authentication data from local storage.
-   */
   logout() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_ROLE_KEY);
     localStorage.removeItem(MUST_RESET_KEY);
-    // Also remove any existing axios default headers if used
     if (axios.defaults.headers.common['Authorization']) {
       delete axios.defaults.headers.common['Authorization'];
     }
