@@ -1,38 +1,42 @@
 import axios from 'axios';
-import AuthService from './AuthService'; // To get the token
+import AuthService from './AuthService';
 
-// Adjust the port if necessary
-const API_URL = 'https://localhost:7122/api/dashboard';
+// IMPORTANT: Ensure this URL matches your ASP.NET Core API root
+const API_BASE_URL = 'https://localhost:7132/api/admin/dashboard';
 
-const DashboardService = {
+class DashboardService {
   /**
-   * Fetches key metrics for the administrative dashboard.
-   * Requires an authenticated admin token.
+   * Fetches the summary metrics for the Admin Dashboard.
+   * @returns {Promise<Object>} The dashboard summary data.
    */
   async getAdminMetrics() {
-    const token = AuthService.getAuthToken();
-    if (!token) {
-      throw new Error('User not authenticated.');
-    }
-
     try {
-      const response = await axios.get(`${API_URL}/admin-metrics`, {
+      const token = AuthService.getToken();
+      if (!token) {
+        throw new Error("User not authenticated. Logging out...");
+      }
+
+      const response = await axios.get(`${API_BASE_URL}/summary`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
+
+      // The API response contains the data object directly
       return response.data;
+
     } catch (error) {
-      console.error('Error fetching admin metrics:', error);
-      // This is critical: if the token is invalid (401), force logout
-      if (error.response && error.response.status === 401) {
+      // Handle 401/403 errors and other network issues
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
         AuthService.logout();
-        // We'll let the component handle the redirect
-        throw new Error('Session expired or unauthorized. Logging out.');
+        throw new Error(`Authentication expired or unauthorized access. Logging out for security.`);
       }
-      throw new Error(error.response?.data?.message || 'Failed to retrieve dashboard data.');
+      // Re-throw other errors
+      throw new Error(`Failed to fetch dashboard metrics: ${error.message}`);
     }
   }
-};
 
-export default DashboardService;
+  // Future methods for fetching detailed data can go here
+}
+
+export default new DashboardService();

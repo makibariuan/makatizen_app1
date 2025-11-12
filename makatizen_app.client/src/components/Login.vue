@@ -1,110 +1,203 @@
 <template>
-  <div class="login-wrapper">
-    <div class="login-card">
-      <!-- Left Section -->
-      <div class="left-section">
-        <img src="@/assets/lungsod_ng_makati_logo.png" alt="Makati Logo" class="logo" />
-        <h1>Makati Senior Citizen System</h1>
-      </div>
+  <div class="login-container">
+    <div class="login-box">
+      <h2 class="title">Makatizen App Portal 🏙️</h2>
+      <p class="subtitle">Secure Login</p>
 
-      <!-- Right Section -->
-      <div class="right-section">
-        <img src="@/assets/lungsod_ng_makati_logo.png" alt="Makati Logo" class="mobile-logo" />
-        <h2>Log In</h2>
+      <form @submit.prevent="handleLogin">
 
-        <form @submit.prevent="handleLogin" class="login-form">
-          <!-- Username -->
-          <div class="input-group">
-            <input v-model="username"
-                   type="text"
-                   placeholder="Username"
-                   required
-                   :disabled="loading" />
-          </div>
+        <!-- Username Input -->
+        <div class="input-group">
+          <label for="username">Username</label>
+          <input type="text"
+                 id="username"
+                 v-model="username"
+                 required
+                 :disabled="loading" />
+        </div>
 
-          <!-- Password -->
-          <div class="input-group">
-            <input :type="showPassword ? 'text' : 'password'"
-                   v-model="password"
-                   placeholder="Password"
-                   required
-                   autocomplete="current-password"
-                   :disabled="loading" />
-            <span class="toggle-password" @click="showPassword = !showPassword">
-              <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-            </span>
-          </div>
+        <!-- Password Input -->
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input type="password"
+                 id="password"
+                 v-model="password"
+                 required
+                 :disabled="loading" />
+        </div>
 
-          <!-- Error Message -->
-          <p v-if="error" class="error-message">{{ error }}</p>
+        <!-- Feedback Message -->
+        <p v-if="error" class="error-message">{{ error }}</p>
 
-          <!-- Forgot Password -->
-          <div class="forgot-password">
-            <router-link to="/forgot-password" class="link">Forgot Password?</router-link>
-          </div>
+        <!-- Submit Button -->
+        <button type="submit"
+                :disabled="loading || !username || !password"
+                class="login-button">
+          {{ loading ? 'Authenticating...' : 'Log In' }}
+        </button>
+      </form>
 
-          <!-- Login Button -->
-          <button type="submit"
-                  class="login-btn"
-                  :disabled="loading || !username || !password">
-            {{ loading ? "Authenticating..." : "Login" }}
-          </button>
-        </form>
-      </div>
+      <p class="mt-4 text-sm text-gray-500">
+        Forgot your password? (Feature coming soon)
+      </p>
     </div>
   </div>
 </template>
 
 <script>
-  import AuthService from '@/services/AuthService';
+import AuthService from '@/services/AuthService';
 
-  export default {
-    name: 'LoginView',
-    data() {
-      return {
-        username: '',
-        password: '',
-        error: '',
-        loading: false,
-        showPassword: false,
-      };
-    },
-    methods: {
-      async handleLogin() {
-        this.error = '';
-        this.loading = true;
+export default {
+  name: 'LoginView',
+  data() {
+    return {
+      username: '',
+      password: '',
+      error: '',
+      loading: false,
+    };
+  },
+  methods: {
+    async handleLogin() {
+      this.error = '';
+      this.loading = true;
 
-        try {
-          const response = await AuthService.login(this.username, this.password);
+      try {
+        const response = await AuthService.login(this.username, this.password);
 
-          if (response.mustResetPassword) {
+        // --- Successful Login Handled by AuthService ---
+
+        if (response.mustResetPassword) {
+            // User successfully logged in but MUST reset password
             this.$router.push({ name: 'PasswordReset' });
-          } else {
+        } else {
+            // User successfully logged in and does NOT need to reset password
             const userRole = AuthService.getUserRole();
 
+            // Redirect based on role (matching the router guard logic)
             if (userRole === 'Kit User') {
-              this.$router.push({ name: 'DashboardKit' });
+                this.$router.push({ name: 'DashboardKit' });
             } else if (userRole === 'Super Admin' || userRole === 'System User') {
-              this.$router.push({ name: 'DashboardAdmin' });
+                this.$router.push({ name: 'DashboardAdmin' });
             } else {
-              this.error = 'Login successful, but role is unrecognized.';
-              AuthService.logout();
+                this.error = 'Login successful, but role is unrecognized.';
+                AuthService.logout();
             }
-          }
-        } catch (err) {
-          this.error =
-            err.response?.data?.message ||
-            err.message ||
-            'Login failed. Please check your credentials.';
-        } finally {
-          this.loading = false;
-          this.password = '';
         }
-      },
-    },
-  };
+      } catch (err) {
+        // Display user-friendly error from the API or fetch failure
+        this.error = err.response?.data?.message || err.message || 'Login failed. Please check your credentials.';
+      } finally {
+        this.loading = false;
+        this.password = ''; // Clear password field for security
+      }
+    }
+  }
+};
 </script>
 
 <style scoped>
-  @import "@/assets/css/auth.css";
+  /* Tailwind-like utility styling using plain CSS for Vue component */
+  .login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #e2e8f0; /* Light gray background */
+  }
+
+  .login-box {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+  }
+
+  .title {
+    margin-bottom: 5px;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #1a202c; /* Dark text */
+  }
+
+  .subtitle {
+    margin-bottom: 30px;
+    color: #4a5568; /* Subdued text */
+    font-size: 1rem;
+  }
+
+  .input-group {
+    margin-bottom: 20px;
+    text-align: left;
+  }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      box-sizing: border-box;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+      .input-group input:focus {
+        border-color: #3182ce; /* Blue focus ring */
+        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
+        outline: none;
+      }
+
+  .login-button {
+    width: 100%;
+    padding: 12px;
+    background-color: #3182ce; /* Blue primary color */
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 700;
+    transition: background-color 0.3s, opacity 0.3s;
+  }
+
+    .login-button:hover:not(:disabled) {
+      background-color: #2c5282;
+    }
+
+    .login-button:disabled {
+      background-color: #90cdf4;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+  .error-message {
+    color: #e53e3e; /* Red error message */
+    margin-bottom: 15px;
+    font-weight: 500;
+    background-color: #fff5f5;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #fed7d7;
+  }
+
+  .mt-4 {
+    margin-top: 1rem;
+  }
+
+  .text-sm {
+    font-size: 0.875rem;
+  }
+
+  .text-gray-500 {
+    color: #a0aec0;
+  }
 </style>
