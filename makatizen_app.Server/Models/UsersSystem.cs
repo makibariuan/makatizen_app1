@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace makatizen_app.Server.Models
 {
     [Table("UsersSystem")]
-    public class UsersSystem
+    public class UsersSystem: IResettableUser
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

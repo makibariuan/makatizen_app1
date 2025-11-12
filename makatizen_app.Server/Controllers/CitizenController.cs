@@ -4,13 +4,18 @@ using makatizen_app.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace makatizen_app.Server.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
-    // Policy allows Super Admin (1), System User (2), and Kit User (3)
-    [Authorize(Policy = "RequireAdminOrKit")]
+    [Route("api/kitusers/[controller]")]
+
+    //[Authorize]
+    [AllowAnonymous] 
     public class CitizenController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -35,7 +40,7 @@ namespace makatizen_app.Server.Controllers
                     BirthDate = c.BirthDate,
                     CreatedAt = c.CreatedAt,
 
-                    // Fetch the latest biometric record's ID, Date, and Status
+                    // Select latest biometric metadata using EF Core in-memory sorting
                     BiometricId = c.BiometricEnrollments
                         .OrderByDescending(b => b.DateUpload)
                         .Select(b => (int?)b.Id)
@@ -43,12 +48,12 @@ namespace makatizen_app.Server.Controllers
 
                     DateCapture = c.BiometricEnrollments
                         .OrderByDescending(b => b.DateUpload)
-                        .Select(b => b.DateCapture)
+                        .Select(b => (DateTime?)b.DateCapture)
                         .FirstOrDefault(),
 
                     Status = c.BiometricEnrollments
                         .OrderByDescending(b => b.DateUpload)
-                        .Select(b => b.Status)
+                        .Select(b => (int?)b.Status)
                         .FirstOrDefault()
                 })
                 .ToListAsync();
@@ -56,17 +61,70 @@ namespace makatizen_app.Server.Controllers
             return Ok(citizens);
         }
 
+        // --- GET: Get specific citizen with detailed biometric history (Refactored to use DTOs) ---
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetCitizen(int id)
+        {
+            var citizen = await _context.Citizens
+                .Include(c => c.BiometricEnrollments)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (citizen == null)
+            {
+                return NotFound(new { message = "Citizen not found." });
+            }
+            var detailDto = new CitizenDetailDto
+            {
+                Id = citizen.Id,
+                CitizenType = citizen.CitizenType,
+                FirstName = citizen.FirstName,
+                LastName = citizen.LastName,
+                BirthDate = citizen.BirthDate,
+                CreatedAt = citizen.CreatedAt,
+                BiometricHistory = citizen.BiometricEnrollments
+                    .Select(b => new BiometricReadDto
+                    {
+                        Id = b.Id,
+                        DateCapture = b.DateCapture ?? DateTime.MinValue,
+                        DateUpload = b.DateUpload ?? DateTime.MinValue,
+                        DateActivate = b.DateActivate,
+                        Status = b.Status, 
+
+                        // Map all biometric fields
+                        Photo = b.Photo,
+                        Signature = b.Signature,
+                        LeftThumb = b.LeftThumb,
+                        LeftIndex = b.LeftIndex,
+                        LeftMiddle = b.LeftMiddle,
+                        LeftRing = b.LeftRing,
+                        LeftSmall = b.LeftSmall,
+                        RightThumb = b.RightThumb,
+                        RightIndex = b.RightIndex,
+                        RightMiddle = b.RightMiddle,
+                        RightRing = b.RightRing,
+                        RightSmall = b.RightSmall,
+                        EyeLeft = b.EyeLeft,
+                        EyeRight = b.EyeRight,
+                        BiometricLeft = b.BiometricLeft,
+                        BiometricRight = b.BiometricRight
+                    })
+                    .OrderByDescending(b => b.DateCapture)
+                    .ToList()
+            };
+
+            // 4. Return the DTO
+            return Ok(detailDto);
+        }
+
         // --- POST: Create New Citizen and Biometric Enrollment ---
         [HttpPost]
         public async Task<IActionResult> CreateCitizen([FromBody] CitizenCreateDto dto)
         {
-            // Check if the request is valid based on DTO attributes
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            // 1. Create Citizen Record
             var citizen = new Citizen
             {
                 CitizenType = dto.CitizenType,
@@ -79,33 +137,32 @@ namespace makatizen_app.Server.Controllers
             _context.Citizens.Add(citizen);
             await _context.SaveChangesAsync(); // Save citizen to get the new ID
 
-            // 2. Create Biometric Enrollment Record
+            // Biometrics is required for creation via this endpoint
+            if (dto.Biometrics == null)
+            {
+                return BadRequest(new { message = "Biometric data is required for initial enrollment." });
+            }
+
             var biometric = new BiometricDataEnrollment
             {
-                PersonId = citizen.Id, // Link to the newly created citizen
-                DateCapture = DateTime.UtcNow, // Assuming capture occurs during creation
+                PersonId = citizen.Id,
+                DateCapture = DateTime.UtcNow,
                 DateUpload = DateTime.UtcNow,
-                DateActivate = null, // Set upon external activation if needed
+                DateActivate = null,
 
                 // --- MAPPING BIOMETRIC FIELDS ---
                 Photo = dto.Biometrics.Photo,
                 Signature = dto.Biometrics.Signature,
-
-                // LEFT HAND FINGERPRINTS
                 LeftThumb = dto.Biometrics.LeftThumb,
                 LeftIndex = dto.Biometrics.LeftIndex,
-                LeftMiddle = dto.Biometrics.LeftMiddle, 
-                LeftRing = dto.Biometrics.LeftRing,     
-                LeftSmall = dto.Biometrics.LeftSmall,   
-
-                // RIGHT HAND FINGERPRINTS
-                RightThumb = dto.Biometrics.RightThumb, 
-                RightIndex = dto.Biometrics.RightIndex, 
-                RightMiddle = dto.Biometrics.RightMiddle, 
-                RightRing = dto.Biometrics.RightRing,    
+                LeftMiddle = dto.Biometrics.LeftMiddle,
+                LeftRing = dto.Biometrics.LeftRing,
+                LeftSmall = dto.Biometrics.LeftSmall,
+                RightThumb = dto.Biometrics.RightThumb,
+                RightIndex = dto.Biometrics.RightIndex,
+                RightMiddle = dto.Biometrics.RightMiddle,
+                RightRing = dto.Biometrics.RightRing,
                 RightSmall = dto.Biometrics.RightSmall,
-
-                // EYE/IRIS AND GENERAL BIOMETRICS
                 EyeLeft = dto.Biometrics.EyeLeft,
                 EyeRight = dto.Biometrics.EyeRight,
                 BiometricLeft = dto.Biometrics.BiometricLeft,
@@ -118,7 +175,7 @@ namespace makatizen_app.Server.Controllers
             _context.BiometricEnrollments.Add(biometric);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetCitizens), new { id = citizen.Id }, new
+            return CreatedAtAction(nameof(GetCitizen), new { id = citizen.Id }, new
             {
                 message = "Citizen and Biometric data successfully enrolled.",
                 citizenId = citizen.Id,
@@ -126,26 +183,7 @@ namespace makatizen_app.Server.Controllers
             });
         }
 
-        // --- GET: Get specific citizen with detailed biometric history ---
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetCitizen(int id)
-        {
-            var citizen = await _context.Citizens
-                .Include(c => c.BiometricEnrollments)
-                .FirstOrDefaultAsync(c => c.Id == id);
-
-            if (citizen == null)
-            {
-                return NotFound(new { message = "Citizen not found." });
-            }
-
-            // To be thorough, you would define a detailed CitizenDetailDto 
-            // that includes the full list of BiometricEnrollment records.
-            // For now, we return the entity directly (in a real app, always use DTOs).
-            return Ok(citizen);
-        }
-
-        // --- PUT: Update Citizen Personal Details (Optional: Update/Add Biometric Data) ---
+        // --- PUT: Update Citizen Personal Details and optionally add a new Biometric Enrollment ---
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCitizen(int id, [FromBody] CitizenCreateDto dto)
         {
@@ -158,7 +196,7 @@ namespace makatizen_app.Server.Controllers
                 return NotFound(new { message = "Citizen not found." });
             }
 
-            // Update personal details
+            // --- Update Personal Details ---
             citizen.CitizenType = dto.CitizenType;
             citizen.FirstName = dto.FirstName;
             citizen.LastName = dto.LastName;
@@ -172,11 +210,28 @@ namespace makatizen_app.Server.Controllers
                     PersonId = citizen.Id,
                     DateCapture = DateTime.UtcNow,
                     DateUpload = DateTime.UtcNow,
-                    // Map all fields from DTO
+                    DateActivate = null,
+
+                    // --- MAPPING BIOMETRIC FIELDS ---
                     Photo = dto.Biometrics.Photo,
                     Signature = dto.Biometrics.Signature,
-                    // ... other fields ...
-                    Status = dto.Biometrics.Status ?? 1
+                    LeftThumb = dto.Biometrics.LeftThumb,
+                    LeftIndex = dto.Biometrics.LeftIndex,
+                    LeftMiddle = dto.Biometrics.LeftMiddle,
+                    LeftRing = dto.Biometrics.LeftRing,
+                    LeftSmall = dto.Biometrics.LeftSmall,
+                    RightThumb = dto.Biometrics.RightThumb,
+                    RightIndex = dto.Biometrics.RightIndex,
+                    RightMiddle = dto.Biometrics.RightMiddle,
+                    RightRing = dto.Biometrics.RightRing,
+                    RightSmall = dto.Biometrics.RightSmall,
+                    EyeLeft = dto.Biometrics.EyeLeft,
+                    EyeRight = dto.Biometrics.EyeRight,
+                    BiometricLeft = dto.Biometrics.BiometricLeft,
+                    BiometricRight = dto.Biometrics.BiometricRight,
+
+                    Hit = 0, // Default value
+                    Status = dto.Biometrics.Status ?? 1 // Default status to 1 if null
                 };
                 _context.BiometricEnrollments.Add(newBiometric);
             }
@@ -190,15 +245,15 @@ namespace makatizen_app.Server.Controllers
         public async Task<IActionResult> DeleteCitizen(int id)
         {
             var citizen = await _context.Citizens
-                .Include(c => c.BiometricEnrollments)
+                // BiometricEnrollments should ideally be cascade deleted in the database configuration
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (citizen == null)
             {
                 return NotFound(new { message = "Citizen not found." });
             }
-            _context.Citizens.Remove(citizen);
 
+            _context.Citizens.Remove(citizen);
             await _context.SaveChangesAsync();
             return NoContent();
         }
