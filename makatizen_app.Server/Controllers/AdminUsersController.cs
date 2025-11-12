@@ -13,8 +13,8 @@ namespace makatizen_app.Server.Controllers
     [Route("api/admin/users")]
     // All methods in this controller require the user to be a Super Admin (UserType 1)
     
-    [Authorize]
-    //[AllowAnonymous]
+    //[Authorize]
+    [AllowAnonymous]
 
     public class AdminUsersController : ControllerBase
     {

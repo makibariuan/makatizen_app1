@@ -10,9 +10,9 @@ namespace makatizen_app.Server.Controllers
 {
     [ApiController]
     [Route("api/admin/kitusers")]
-    [Authorize]
+    
     //[Authorize(Policy = "RequireSuperAdminOrSystemUser")]
-    //[AllowAnonymous]
+    [AllowAnonymous]
     public class KitUsersController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -57,7 +57,6 @@ namespace makatizen_app.Server.Controllers
 
             return Ok(users);
         }
-
         [HttpPost] // Route: POST api/admin/kitusers
         public async Task<IActionResult> CreateKitUser([FromBody] UserKitCreateDto dto)
         {
