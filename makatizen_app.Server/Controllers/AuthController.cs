@@ -57,7 +57,7 @@ namespace makatizen_app.Server.Controllers
 
             if (mustResetPassword)
             {
-                // Return flag to frontend to force redirect to password reset
+              
                 return Ok(new LoginResponse
                 {
                     Token = "",

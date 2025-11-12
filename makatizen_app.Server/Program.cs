@@ -9,16 +9,24 @@ var builder = WebApplication.CreateBuilder(args);
 
 // --- Database Configuration ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-// Ensure your AppDbContext file is created in the Data folder!
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
 // ------------------------------
+
+
 builder.Services.Configure<EmailSettings>(
     builder.Configuration.GetSection("Smtp"));
 builder.Services.AddTransient<IEmailService, EmailService>();
 
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // This setting tells the serializer to ignore any objects 
+        // that create a circular reference path.
+        options.JsonSerializerOptions.ReferenceHandler =
+            System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 
 // --- START JWT CONFIGURATION ---
 var jwtSection = builder.Configuration.GetSection("Jwt");
@@ -44,17 +52,17 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Authorization Policies based on UserType: 1 = Super Admin, 2 = System User, 3 = Kit User
+//UserType: 1 = Super Admin, 2 = System User, 3 = Kit User
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("RequireSuperAdmin", policy => policy.RequireClaim("UserType", "1"));
     options.AddPolicy("RequireSystemUser", policy => policy.RequireClaim("UserType", "2"));
+    options.AddPolicy("RequireSuperAdminOrSystemUser", policy => policy.RequireClaim("UserType", "1","2"));
     options.AddPolicy("RequireKitUser", policy => policy.RequireClaim("UserType", "3"));
-    // Policy for any System/Kit user (e.g., CRUD Citizen)
     options.AddPolicy("RequireAdminOrKit", policy => policy.RequireClaim("UserType", "1", "2", "3"));
 });
 
-// --- END JWT CONFIGURATION ---
+// -----------------------------------------------------------------------------------------
 
 
 // Add CORS policy for Vue.js frontend
@@ -70,7 +78,6 @@ builder.Services.AddCors(options =>
                 "https://localhost:58217",
                 "https://localhost:7132"
             )
-           
             .AllowAnyHeader()
             .AllowAnyMethod();
         });
@@ -90,11 +97,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseCors("VueAppPolicy");
-
-// MUST be before UseAuthorization
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
