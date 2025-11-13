@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace makatizen_app.Server.Models
 {
     [Table("UsersSystem")]
-    public class UsersSystem: IResettableUser
+    public class UsersSystem: IResettableUser, IStatusUser
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -65,5 +65,6 @@ namespace makatizen_app.Server.Models
         public string? LoginOtp { get; set; }
 
         public DateTime? LoginOtpExpiry { get; set; }
+        public bool IsActive { get; set; }
     }
 }

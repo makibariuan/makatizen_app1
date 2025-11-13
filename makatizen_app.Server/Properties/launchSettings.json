@@ -27,7 +27,7 @@
       "launchBrowser": true,
       "launchUrl": "swagger",
       // --- CHANGED: Use 192.168.1.176 for the LAN/HTTP address to be explicit ---
-      "applicationUrl": "https://localhost:7122;http://192.168.1.176:5007",
+      "applicationUrl": "https://localhost:7122",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "Microsoft.AspNetCore.SpaProxy"
