@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace makatizen_app.Server.Models
 {
     [Table("UsersKit")]
-    public class UsersKit :  IResettableUser
+    public class UsersKit :  IResettableUser, IStatusUser
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -35,6 +35,7 @@ namespace makatizen_app.Server.Models
         public bool MustResetPassword { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public bool IsActive { get; set; }
 
         // JWT/Session Management
         [Column(TypeName = "nvarchar(max)")]
