@@ -1,27 +1,33 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using makatizen_app.Server.Models;
+using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace makatizen_app.Server.Models
+[Table("BypassLog")]
+public class BypassLog
 {
-    // Note: Since your SQL didn't define a PK, I'm adding one (Id) 
-    // and setting the original columns as they were defined.
-    public class BypassLog
-    {
-        [Key] // Primary Key for EF Core
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int Id { get; set; }
+    // Assuming an auto-incrementing key for EF Core, even if not shown in DB screenshot
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public int Id { get; set; }
 
-        public int PersonID { get; set; }
+    // Foreign Key to Citizen
+    public int? PersonId { get; set; }
+    [ForeignKey(nameof(PersonId))]
+    public Citizen? Citizen { get; set; }
 
-        [MaxLength(100)]
-        public string StepName { get; set; }
+    // StepName (nvarchar(100), null)
+    [MaxLength(100)]
+    public string? StepName { get; set; }
 
-        [MaxLength(100)]
-        public string ReasonCode { get; set; }
+    // ReasonCode (nvarchar(100), null) - e.g., "NO_RIGHT_FINGERS"
+    [MaxLength(100)]
+    public string? ReasonCode { get; set; }
 
-        [MaxLength(500)]
-        public string ReasonDetails { get; set; }
+    // ReasonDetails (nvarchar(500), null)
+    [MaxLength(500)]
+    public string? ReasonDetails { get; set; }
 
-        public DateTime DateBypassed { get; set; }
-    }
+    // DateBypassed (datetime, null)
+    public DateTime? DateBypassed { get; set; }
 }

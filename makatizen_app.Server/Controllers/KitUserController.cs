@@ -12,21 +12,20 @@ using System.Threading.Tasks;
 namespace makatizen_app.Server.Controllers
 {
     [ApiController]
-    [Route("api/kitusers/[controller]")]
+    [Route("api/[controller]")]
 
     [Authorize]
-    //[AllowAnonymous] 
-    public class CitizenController : ControllerBase
+    public class KitUserController : ControllerBase
     {
         private readonly AppDbContext _context;
 
-        public CitizenController(AppDbContext context)
+        public KitUserController(AppDbContext context)
         {
             _context = context;
         }
 
         // --- GET: List All Citizens with Latest Biometric Info ---
-        [HttpGet]
+        [HttpGet("citizen-list")]
         public async Task<ActionResult<IEnumerable<CitizenReadDto>>> GetCitizens()
         {
             var citizens = await _context.Citizens
@@ -39,6 +38,7 @@ namespace makatizen_app.Server.Controllers
                     LastName = c.LastName,
                     BirthDate = c.BirthDate,
                     CreatedAt = c.CreatedAt,
+                    BiometricBypass = c.BiometricBypass,
 
                     // Select latest biometric metadata using EF Core in-memory sorting
                     BiometricId = c.BiometricEnrollments
@@ -62,7 +62,7 @@ namespace makatizen_app.Server.Controllers
         }
 
         // --- GET: Get specific citizen with detailed biometric history (Refactored to use DTOs) ---
-        [HttpGet("{id}")]
+        [HttpGet("citizen-list/{id}")]
         public async Task<IActionResult> GetCitizen(int id)
         {
             var citizen = await _context.Citizens
@@ -81,6 +81,7 @@ namespace makatizen_app.Server.Controllers
                 LastName = citizen.LastName,
                 BirthDate = citizen.BirthDate,
                 CreatedAt = citizen.CreatedAt,
+                BiometricBypass = citizen.BiometricBypass,
                 BiometricHistory = citizen.BiometricEnrollments
                     .Select(b => new BiometricReadDto
                     {
@@ -117,7 +118,7 @@ namespace makatizen_app.Server.Controllers
         }
 
         // --- POST: Create New Citizen and Biometric Enrollment ---
-        [HttpPost]
+        [HttpPost("create-new-citizen-and-enrollment")]
         public async Task<IActionResult> CreateCitizen([FromBody] CitizenCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -127,11 +128,12 @@ namespace makatizen_app.Server.Controllers
 
             var citizen = new Citizen
             {
-                CitizenType = dto.CitizenType,
+                CitizenType = dto.CitizenType, // 0: Senior Citizen, 1: need bypassLog
                 FirstName = dto.FirstName,
                 LastName = dto.LastName,
                 BirthDate = dto.BirthDate,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                BiometricBypass = false // Default to false on creation
             };
 
             _context.Citizens.Add(citizen);
@@ -184,7 +186,7 @@ namespace makatizen_app.Server.Controllers
         }
 
         // --- PUT: Update Citizen Personal Details and optionally add a new Biometric Enrollment ---
-        [HttpPut("{id}")]
+        [HttpPut("update-citizen/{id}")]
         public async Task<IActionResult> UpdateCitizen(int id, [FromBody] CitizenCreateDto dto)
         {
             var citizen = await _context.Citizens
@@ -240,22 +242,70 @@ namespace makatizen_app.Server.Controllers
             return NoContent();
         }
 
-        // --- DELETE: Delete Citizen and associated Biometrics ---
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCitizen(int id)
+        [HttpPut("set-bypass-status/{id}")]
+        public async Task<IActionResult> SetBiometricBypassStatusAndLog(int id, [FromBody] BypassLogDto dto)
         {
-            var citizen = await _context.Citizens
-                // BiometricEnrollments should ideally be cascade deleted in the database configuration
-                .FirstOrDefaultAsync(c => c.Id == id);
+            // Input validation: ReasonCode is mandatory when setting bypass (ShouldBypass == true)
+            if (dto.ShouldBypass && string.IsNullOrWhiteSpace(dto.ReasonCode))
+            {
+                return BadRequest(new { message = "ReasonCode is required when setting the biometric bypass status." });
+            }
+
+            var citizen = await _context.Citizens.FindAsync(id);
 
             if (citizen == null)
             {
                 return NotFound(new { message = "Citizen not found." });
             }
 
-            _context.Citizens.Remove(citizen);
+            if (dto.ShouldBypass)
+            {
+                // 1. Set Bypass Status and Log
+                if (citizen.BiometricBypass)
+                {
+                    return Ok(new { message = "Biometric bypass is already set for this citizen." });
+                }
+
+                citizen.BiometricBypass = true;
+
+                // Create the log entry
+                var bypassLog = new BypassLog
+                {
+                    PersonId = citizen.Id,
+                    StepName = dto.StepName ?? "Step Name",
+                    ReasonCode = dto.ReasonCode,
+                    ReasonDetails = dto.ReasonDetails,
+                    DateBypassed = DateTime.UtcNow
+                };
+
+                _context.BypassLogs.Add(bypassLog);
+            }
+            else
+            {
+                // 2. Remove Bypass Status
+                if (!citizen.BiometricBypass)
+                {
+                    return Ok(new { message = "Biometric bypass is already disabled for this citizen." });
+                }
+
+                citizen.BiometricBypass = false;
+                // Optional: You could log the removal event here if needed, but typically only the bypass creation is logged in detail.
+            }
+
+            // Save changes to the Citizen record and the new BypassLog (if setting bypass)
             await _context.SaveChangesAsync();
-            return NoContent();
+
+            string statusMessage = dto.ShouldBypass
+                ? $"Biometric enrollment for Citizen {id} was successfully set to **Bypassed** due to reason code: {dto.ReasonCode}."
+                : $"Biometric enrollment for Citizen {id} was successfully reverted to **Standard** (Bypass removed).";
+
+            return Ok(new
+            {
+                message = statusMessage,
+                citizenId = citizen.Id,
+                newBypassStatus = citizen.BiometricBypass
+            });
         }
+
     }
 }

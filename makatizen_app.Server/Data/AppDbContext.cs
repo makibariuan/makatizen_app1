@@ -15,9 +15,8 @@ namespace makatizen_app.Server.Data
         public DbSet<UsersKit> UsersKits { get; set; }
         public DbSet<Citizen> Citizens { get; set; }
         public DbSet<BiometricDataEnrollment> BiometricEnrollments { get; set; }
-        public DbSet<EmailMessages> EmailMessages { get; set; }
-        public DbSet<FailedEmails> FailedEmails { get; set; }
         public DbSet<BiometricDataEnrollment> BiometricDataEnrollments { get; set; }
+        public DbSet<BypassLog> BypassLogs { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

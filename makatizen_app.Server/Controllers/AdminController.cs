@@ -2,7 +2,6 @@
 using makatizen_app.Server.Data;
 using makatizen_app.Server.DTOs;
 using makatizen_app.Server.Models;
-using makatizen_app.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,12 +16,10 @@ namespace makatizen_app.Server.Controllers
     public class AdminController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly IEmailService _emailService;
 
-        public AdminController(AppDbContext context, IEmailService emailService)
+        public AdminController(AppDbContext context)
         {
             _context = context;
-            _emailService = emailService;
         }
 
         // --- Helper for generating secure temporary passwords ---
@@ -125,6 +122,7 @@ namespace makatizen_app.Server.Controllers
                 return Conflict(new { message = "Username already exists in either system or kit table." });
             }
 
+
             // --- 4. Generate Credentials and Flags ---
 
             var (plainPassword, hashedPassword) = GenerateTemporaryPassword();
@@ -134,8 +132,9 @@ namespace makatizen_app.Server.Controllers
 
             // --- 5. Conditional User Creation and Persistence ---
 
-            int newUserId;
             string userTableName;
+            string successMessage;
+            object newUser;
 
             if (userType == "system")
             {
@@ -147,12 +146,13 @@ namespace makatizen_app.Server.Controllers
                     PasswordHash = hashedPassword,
                     IsActive = true,
                     MustResetPassword = true,
-                    // FirstName and LastName mapping removed here
                 };
                 _context.UsersSystems.Add(user);
 
-                newUserId = user.Id;
+                newUser = user;
                 userTableName = "UsersSystem";
+                successMessage = $"User created successfully in {userTableName}.";
+
             }
             else // userType == "kit"
             {
@@ -168,22 +168,30 @@ namespace makatizen_app.Server.Controllers
                 };
                 _context.UsersKits.Add(kit);
 
-                newUserId = kit.Id;
+                newUser = kit;
                 userTableName = "UsersKit";
+                successMessage = $"User created successfully Mobile Kit No: {kit.Id}, Username: {dto.Username}.";
             }
 
             await _context.SaveChangesAsync();
 
             // --- 6. Return Success Response ---
+            int newUserId = (int)newUser.GetType().GetProperty("Id").GetValue(newUser, null);
 
-            return CreatedAtAction(nameof(GetSystemUsers), new { userType = userType }, new // <-- FIX HERE
+            // If it was a KIT user, recalculate the successMessage with the real ID
+            if (userType == "kit")
             {
-                message = $"User created successfully in {userTableName}.",
-                userId = newUserId,
+                successMessage = $"User created successfully Mobile Kit No: {newUserId}, Username: {dto.Username}.";
+            }
+
+            return CreatedAtAction(nameof(GetSystemUsers), new { userType = userType }, new
+            {
+                message = successMessage,
+                userId = newUserId, // <-- Will now contain the actual DB ID
                 username = dto.Username,
                 userType = dto.UserType,
                 initialPassword = plainPassword,
-                mustReset = true
+
             });
         }
 

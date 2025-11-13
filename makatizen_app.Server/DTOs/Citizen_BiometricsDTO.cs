@@ -27,6 +27,7 @@ namespace makatizen_app.Server.DTOs
 
         // Status can be set by the Kit User during enrollment
         public int? Status { get; set; }
+        
     }
 
     // --- Biometric Data DTO (Read/Output) ---
@@ -56,6 +57,8 @@ namespace makatizen_app.Server.DTOs
         public string? EyeRight { get; set; }
         public string? BiometricLeft { get; set; }
         public string? BiometricRight { get; set; }
+
+        
     }
 
     // --- Combined Citizen + Biometric DTO (Create/Update Input) ---
@@ -91,6 +94,7 @@ namespace makatizen_app.Server.DTOs
         public int? BiometricId { get; set; }
         public DateTime? DateCapture { get; set; }
         public int? Status { get; set; }
+        public bool BiometricBypass { get; set; }
     }
 
     // --- Detailed Citizen DTO (Single View Output) ---
@@ -103,6 +107,7 @@ namespace makatizen_app.Server.DTOs
         public string LastName { get; set; } = string.Empty;
         public DateTime BirthDate { get; set; }
         public DateTime CreatedAt { get; set; }
+        public bool BiometricBypass { get; set; }
 
         // The collection is now a list of BiometricReadDto (no circular reference)
         public List<BiometricReadDto> BiometricHistory { get; set; } = new List<BiometricReadDto>();

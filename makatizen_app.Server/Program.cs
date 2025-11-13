@@ -3,7 +3,6 @@ using makatizen_app.Server.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using makatizen_app.Server.Services;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,9 +41,11 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
-builder.Services.Configure<EmailSettings>(
-    builder.Configuration.GetSection("Smtp"));
-builder.Services.AddTransient<IEmailService, EmailService>();
+
+
+//builder.Services.Configure<EmailSettings>(
+//    builder.Configuration.GetSection("Smtp"));
+//builder.Services.AddTransient<IEmailService, EmailService>();
 
 
 builder.Services.AddControllers()

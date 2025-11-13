@@ -28,9 +28,9 @@ namespace makatizen_app.Server.Models
         [MaxLength(255)]
         public string LastName { get; set; } = string.Empty;
 
-        public DateTime BirthDate { get; set; }
-        [Required]
-        [MaxLength(500)]
+        //public DateTime BirthDate { get; set; }
+        //[Required]
+        //[MaxLength(500)]
 
         public string PasswordHash { get; set; } = string.Empty;
 

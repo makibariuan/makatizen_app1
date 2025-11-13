@@ -20,7 +20,9 @@ namespace makatizen_app.Server.Models
         [MaxLength(255)]
         public string LastName { get; set; } = string.Empty;
 
-    
+        public bool BiometricBypass { get; set; } = false;
+
+
         [Column(TypeName = "smalldatetime")]
         public DateTime BirthDate { get; set; }
 
@@ -28,6 +30,7 @@ namespace makatizen_app.Server.Models
 
         // Navigation property for biometrics
         public virtual ICollection<BiometricDataEnrollment> BiometricEnrollments { get; set; } = new List<BiometricDataEnrollment>();
+        public ICollection<BypassLog> BypassLogs { get; set; } = new List<BypassLog>();
 
         // Note: For 'Citizen can only read their biometrics' logic, 
         // if they need to log in, you must add Email/Username and PasswordHash columns here. 
