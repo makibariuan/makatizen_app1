@@ -114,8 +114,6 @@ builder.Services.AddCors(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
-//builder.WebHost.UseUrls("http://0.0.0.0:5000"); // listen on all interfaces
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())

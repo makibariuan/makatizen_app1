@@ -1,196 +1,305 @@
-/*
- * AUTH.CSS - BLUE THEME
- * Applied to LoginView and potentially other Auth views.
- */
+/* Shared authentication styles for Login and Signup */
 
 .login-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
-  width: 100vw;
-  /* 🔵 CHANGE: Light blue background gradient */
-  background: linear-gradient(135deg, #eaf3ff, #f9ffff);
-  padding: 20px;
-  font-family: 'Inter', sans-serif;
+  height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa, #e6ebf5); /* matches main.css */
+  font-family: "Poppins", sans-serif;
 }
 
 .login-card {
   display: flex;
-  width: 100%;
-  max-width: 900px;
-  min-height: 500px;
-  background: white;
-  border-radius: 15px;
-  box-shadow: 0 10px 30px rgba(0, 46, 77, 0.15); /* 🔵 CHANGE: Darker blue shadow */
+  width: 1000px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  min-height: 800px; /* ✅ added to match Signup's visual height */
 }
 
-/* ------------------- LEFT SECTION (Branding) ------------------- */
+/* LEFT SIDE */
 .left-section {
   flex: 1;
+  background: #009879;
+  color: #fff;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  padding: 40px;
-  /* 🔵 CHANGE: Primary Blue background */
-  background: #007bff;
-  color: white;
+  justify-content: center;
+  padding: 2rem;
   text-align: center;
 }
 
   .left-section .logo {
-    width: 120px;
-    height: 120px;
-    margin-bottom: 20px;
+    width: 130px;
+    margin-bottom: 1rem;
   }
 
-  .left-section h1 {
-    font-size: 1.8rem;
-    font-weight: 700;
-    line-height: 1.3;
-  }
-
-/* ------------------- RIGHT SECTION (Form) ------------------- */
+/* RIGHT SIDE */
 .right-section {
-  flex: 1;
-  padding: 50px 40px;
+  flex: 1.2;
+  padding: 3rem 4rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background: #ffffff;
+  min-height: 800px; /* ✅ ensures equal vertical size for Login */
 }
 
   .right-section h2 {
-    font-size: 2.2rem;
-    font-weight: 800;
-    margin-bottom: 30px;
-    /* 🔵 CHANGE: Dark Navy Blue text */
-    color: #002e4d;
+    color: #009879;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
     text-align: center;
   }
 
-.mobile-logo {
-  display: none; /* Hidden on desktop */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
 }
 
-/* ------------------- FORM ELEMENTS ------------------- */
-.login-form {
-  width: 100%;
-  max-width: 350px;
-  margin: 0 auto;
+.name-row {
+  display: flex;
+  gap: 1rem;
 }
 
 .input-group {
-  margin-bottom: 20px;
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
   .input-group input {
     width: 100%;
-    padding: 14px 15px;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    font-size: 1rem;
-    transition: border-color 0.3s ease;
+    padding: 12px 15px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    outline: none;
+    transition: 0.3s;
+    font-size: 0.95rem;
+    color: #333;
+    background-color: #fff;
+    font-family: "Poppins", sans-serif;
   }
+
+    .input-group input[type="date"] {
+      color: #333;
+      font-size: 0.95rem;
+      font-family: "Poppins", sans-serif;
+      appearance: none;
+    }
+
+      .input-group input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(0.5);
+        cursor: pointer;
+      }
 
     .input-group input:focus {
-      outline: none;
-      /* 🔵 CHANGE: Primary Blue border on focus */
-      border-color: #007bff;
-      /* 🔵 CHANGE: Primary Blue shadow on focus */
-      box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+      border-color: #009879;
+      box-shadow: 0 0 5px rgba(0, 152, 121, 0.2);
     }
 
+/* Password toggle */
 .toggle-password {
   position: absolute;
-  top: 50%;
   right: 15px;
-  transform: translateY(-50%);
   cursor: pointer;
-  color: #64748b;
-}
-
-/* ------------------- BUTTONS & MESSAGES ------------------- */
-.login-btn {
-  width: 100%;
-  padding: 15px;
+  color: #666;
+  background: transparent;
   border: none;
-  border-radius: 8px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: white;
-  /* 🔵 CHANGE: Primary Blue button */
-  background: #007bff;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.1s;
-  margin-top: 10px;
 }
 
-  .login-btn:hover:not(:disabled) {
-    /* 🔵 CHANGE: Darker Blue hover */
-    background: #0056b3;
-    transform: translateY(-1px);
-  }
+/* Remove built-in browser password toggles */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none !important;
+}
 
-  .login-btn:disabled {
-    background: #b3cde0;
-    cursor: not-allowed;
-  }
+input[type="password"]::-webkit-textfield-decoration-container {
+  display: none !important;
+}
 
-.error-message {
-  color: #ef4444; /* Red for errors (standard) */
-  text-align: center;
-  margin-bottom: 15px;
+/* Button */
+.login-btn {
+  background: #009879;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 1rem;
   font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
 }
 
-.forgot-password {
-  text-align: right;
-  margin-bottom: 25px;
-}
-
-  .forgot-password .link {
-    /* 🔵 CHANGE: Primary Blue link color */
-    color: #007bff;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.2s;
+  .login-btn:hover {
+    background: #007f67;
   }
 
-    .forgot-password .link:hover {
-      /* 🔵 CHANGE: Darker Blue link hover */
-      color: #0056b3;
-      text-decoration: underline;
-    }
+.signup-text {
+  text-align: center;
+  margin-top: 1rem;
+  color: #555;
+  font-size: 0.9rem;
+}
 
-/* ------------------- MEDIA QUERIES (Mobile responsiveness) ------------------- */
-@media (max-width: 768px) {
+.link {
+  color: #009879;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+  .link:hover {
+    text-decoration: underline;
+  }
+
+.half {
+  flex: 1;
+}
+
+/* ===== PASSWORD + REQUIREMENTS ===== */
+.password-section {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 750px;
+}
+
+  .password-section .input-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem; /* ensures vertical gap between password and confirm password */
+    flex: 1;
+  }
+
+  .password-section .input-group {
+    position: relative;
+  }
+
+  .password-section input[type="password"],
+  .password-section input[type="text"] {
+    width: 100%;
+    padding: 12px 40px 12px 15px;
+    font-size: 0.95rem;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    box-sizing: border-box;
+  }
+
+  .password-section .toggle-password {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #555;
+  }
+
+/* Password requirements */
+.password-requirements {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start; /* align to the left */
+  gap: 0.2rem; /* reduced vertical gap */
+  text-align: left;
+}
+
+  .password-requirements li {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #555;
+    gap: 0.5rem;
+    line-height: 1.2;
+  }
+
+  .password-requirements input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    pointer-events: none;
+    accent-color: #28a745;
+    transform: scale(1.1);
+    vertical-align: middle;
+  }
+
+  .password-requirements li.met {
+    color: #2e7d32;
+    font-weight: 500;
+  }
+
+/* MOBILE RESPONSIVENESS */
+@media (max-width: 900px) {
   .login-card {
     flex-direction: column;
-    max-width: 400px;
-    min-height: auto;
+    width: 95%;
+    height: auto;
+    border-radius: 15px;
   }
 
   .left-section {
-    display: none; /* Hide branding on small screens */
+    display: none;
   }
 
   .right-section {
-    padding: 30px 25px;
+    padding: 2rem;
+    align-items: center;
   }
 
   .mobile-logo {
     display: block;
-    width: 80px;
-    height: 80px;
-    margin: 0 auto 20px auto;
+    width: 100px;
+    margin-bottom: 1.5rem;
   }
 
-  .right-section h2 {
-    font-size: 1.8rem;
-    margin-bottom: 20px;
+  .name-row {
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .login-form {
+    width: 100%;
+  }
+
+  .password-section {
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 100%;
+  }
+
+  .password-requirements {
+    padding-left: 0;
+    align-items: flex-start;
   }
 }
+
+/* Hide mobile logo on desktop */
+.mobile-logo {
+  display: none;
+}
+
+.forgot-password {
+  text-align: left;
+  margin-top: -0.5rem;
+  margin-bottom: 0.5rem;
+  margin-left: 0.5rem;
+}
+
+  .forgot-password .link {
+    font-size: 0.9rem;
+    color: #009879;
+    text-decoration: none;
+  }
+
+    .forgot-password .link:hover {
+      text-decoration: underline;
+    }
