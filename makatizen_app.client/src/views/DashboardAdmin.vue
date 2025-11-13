@@ -11,7 +11,7 @@
     <main class="dashboard-container">
       <h1 class="welcome-title">Administrator Dashboard 🛡️</h1>
       <p class="role-info">
-        Welcome back, {{ userRole }}. Use the sections below to manage users and citizen data.
+        Welcome back, {{ getRoleName(userRole) }}. Use the sections below to manage users and citizen data.
       </p>
 
       <section v-if="activeView === 'kitUsers' || activeView === 'systemUsers'">
@@ -31,7 +31,7 @@
             <tr v-for="user in userList" :key="user.id">
               <td>{{ user.id }}</td>
               <td>{{ user.username }}</td>
-              <td>{{ user.role }}</td>
+              <td>{{ getRoleName(user.userType) }}</td>
               <td>
                 <button class="edit-btn" @click="editUser(user)">Edit</button>
                 <button class="delete-btn" @click="deleteUser(user.id)">Delete</button>
@@ -39,23 +39,6 @@
             </tr>
           </tbody>
         </table>
-
-        <!-- Add/Edit Form -->
-        <div v-if="showForm" class="form-overlay">
-          <div class="form-container">
-            <h3>{{ editingUser ? 'Edit User' : 'Add New User' }}</h3>
-            <form @submit.prevent="saveUser">
-              <label>Username</label>
-              <input v-model="form.username" required />
-
-              <label>Password</label>
-              <input v-model="form.password" type="password" :required="!editingUser" />
-
-              <button type="submit" class="save-btn">Save</button>
-              <button type="button" class="cancel-btn" @click="closeForm">Cancel</button>
-            </form>
-          </div>
-        </div>
       </section>
 
       <section v-else-if="activeView === 'citizenRecords'">
@@ -66,9 +49,35 @@
         <button class="action-button success">View Citizen Records</button>
       </section>
 
+      <div v-if="showForm" class="form-overlay">
+        <div class="form-popup">
+          <h3>{{ editingUser ? 'Edit User' : 'Create New User' }}</h3>
+          <form @submit.prevent="saveUser">
+            <label>Username</label>
+            <input v-model="form.username" required />
+
+            <label>Password</label>
+            <input v-model="form.password" type="password" :required="!editingUser" />
+
+            <label>Role</label>
+            <select v-model.number="form.userType" required>
+              <option :value="1">Super Admin</option>
+              <option :value="2">System User</option>
+              <option v-if="activeView === 'kitUsers' || form.userType === 3" :value="3">Kit User</option>
+            </select>
+
+            <div class="form-actions">
+              <button type="submit" class="save-btn">Save</button>
+              <button type="button" class="cancel-btn" @click="closeForm">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <div v-if="loading" class="loading-overlay">
         <p>Loading data...</p>
       </div>
+
       <div v-if="error" class="error-box">
         <p>{{ error }}</p>
       </div>
@@ -81,12 +90,24 @@
   import AuthService from '@/services/AuthService';
   import DashboardService from '@/services/DashboardService';
 
+  // Helper mapping to convert int roles to display strings
+  const ROLE_MAP = {
+    1: 'Super Admin',
+    2: 'System User',
+    3: 'Kit User'
+  };
+
   export default {
     name: 'DashboardAdminView',
     components: { Sidebar },
     data() {
+      // Get the role from AuthService, convert it to an integer, or default to 1 (Super Admin)
+      const rawUserRole = AuthService.getUserRole();
+      const userRoleInt = parseInt(rawUserRole, 10);
+
       return {
-        userRole: AuthService.getUserRole() || 'Admin',
+        // 🚀 DATA FIX 1: Store role as INT
+        userRole: isNaN(userRoleInt) ? 1 : userRoleInt,
         loading: false,
         error: null,
         metrics: {
@@ -102,40 +123,23 @@
         form: {
           username: '',
           password: '',
-          role: ''
+          // 🚀 DATA FIX 2: Initialize role as a number
+          userType: 2 // Default to System User (2) for new system users, or Kit User (3) for kit
         },
         sidebarOpen: true
       };
     },
     async mounted() {
       await this.fetchMetrics();
-      await this.fetchUsers('kitUsers');
+      await this.fetchUsers(this.activeView);
     },
     methods: {
-      async fetchMetrics() {
-        this.loading = true;
-        this.error = null;
-        try {
-          const data = await DashboardService.getAdminMetrics();
-          this.metrics = { ...this.metrics, ...data };
-        } catch (err) {
-          this.error = err.message;
-        } finally {
-          this.loading = false;
-        }
+      getRoleName(userType) {
+        // Helper to convert the integer role to a readable string for the template
+        return ROLE_MAP[userType] || 'Unknown';
       },
-      async fetchUsers(view) {
-        this.loading = true;
-        this.error = null;
-        try {
-          const endpoint = view === 'systemUsers' ? 'system-users' : 'kit-users';
-          const res = await fetch(`https://localhost:7288/api/User/${endpoint}`);
-          this.userList = await res.json();
-        } catch (err) {
-          this.error = 'Failed to load user list.';
-        } finally {
-          this.loading = false;
-        }
+      toggleSidebar() {
+        this.sidebarOpen = !this.sidebarOpen;
       },
       switchView(view) {
         this.activeView = view;
@@ -147,109 +151,212 @@
       },
       openAddForm() {
         this.editingUser = null;
+        // 🚀 METHOD FIX 1: Set default role using the integer
         this.form = {
           username: '',
           password: '',
-          role: this.activeView === 'kitUsers' ? 'KitUser' : 'SystemUser'
+          userType: this.activeView === 'kitUsers' ? 3 : 2 // 3 for KitUser, 2 for SystemUser
         };
         this.showForm = true;
       },
       editUser(user) {
         this.editingUser = user;
-        this.form = { ...user, password: '' };
+        // User list data should now contain userType (int)
+        this.form = {
+          username: user.username,
+          // 🚀 METHOD FIX 2: Populate form with the integer userType from the user object
+          userType: user.userType,
+          password: ''
+        };
         this.showForm = true;
-      },
-      async saveUser() {
-        const method = this.editingUser ? 'PUT' : 'POST';
-        const url = this.editingUser
-          ? `https://localhost:7288/api/User/${this.editingUser.id}`
-          : 'https://localhost:7288/api/User';
-
-        try {
-          await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(this.form)
-          });
-          await this.fetchUsers(this.activeView);
-          this.showForm = false;
-        } catch (err) {
-          this.error = 'Failed to save user.';
-        }
-      },
-      async deleteUser(id) {
-        if (confirm('Are you sure you want to delete this user?')) {
-          try {
-            await fetch(`https://localhost:7288/api/User/${id}`, { method: 'DELETE' });
-            await this.fetchUsers(this.activeView);
-          } catch {
-            this.error = 'Failed to delete user.';
-          }
-        }
       },
       closeForm() {
         this.showForm = false;
       },
-      toggleSidebar() {
-        this.sidebarOpen = !this.sidebarOpen;
+
+      // --- API Calls ---
+      async fetchMetrics() {
+        this.loading = true;
+        this.error = null;
+        try {
+          const data = await DashboardService.getAdminMetrics();
+          this.metrics = { ...this.metrics, ...data };
+        } catch (err) {
+          this.error = err.message || 'Failed to load dashboard metrics.';
+        } finally {
+          this.loading = false;
+        }
+      },
+
+      async fetchUsers(view) {
+        this.loading = true;
+        this.error = null;
+        try {
+          const token = localStorage.getItem('jwt_token');
+          let url = '';
+
+          if (view === 'kitUsers') {
+            url = 'https://localhost:7122/api/admin/users/kit'; // Assuming this uses the AdminUsersController path
+          } else if (view === 'systemUsers') {
+            url = 'https://localhost:7122/api/admin/users/system'; // Assuming this uses the AdminUsersController path
+          }
+
+          const response = await fetch(url, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to load ${view}. Status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          this.userList = data.map(user => ({
+            // This is the CRITICAL change: Ensure you receive/store the userType (int)
+            id: user.id, // Assuming 'id' is consistent
+            username: user.username,
+            userType: user.userType, // 🚀 API FIX: Storing the INT UserType from the API response
+            role: this.getRoleName(user.userType) // Keeping this for backward compatibility in the template, though not needed now
+          }));
+
+        } catch (err) {
+          this.error = err.message || 'Failed to load user list.';
+        } finally {
+          this.loading = false;
+        }
+      },
+
+      async saveUser() {
+        this.loading = true;
+        this.error = null;
+        const isCreating = !this.editingUser;
+        const method = isCreating ? 'POST' : 'PUT';
+
+        // 🚀 METHOD FIX 3: Determine endpoint based on the numeric userType
+        const roleEndpoint = this.form.userType === 3 ? 'KitUser' : 'SystemUser';
+
+        const baseUrl = `https://localhost:7122/api/admin/users/${roleEndpoint.toLowerCase()}`;
+        const url = isCreating ? baseUrl : `${baseUrl}/${this.editingUser.id}`;
+
+        try {
+          const token = localStorage.getItem('jwt_token');
+
+          // Prepare the DTO body
+          const body = {
+            username: this.form.username,
+            password: this.form.password,
+            // 🚀 METHOD FIX 4: Send the userType (int) in the DTO
+            userType: this.form.userType
+            // Note: If your DTOs require other fields like Email, FirstName, etc.,
+            // you must add them here and to the form data.
+          };
+
+          // If editing and password is empty, do not send the password property
+          if (!isCreating && !body.password) {
+            delete body.password;
+          }
+
+          const response = await fetch(url, {
+            method,
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to save user: ${errorText || response.statusText}`);
+          }
+
+          await this.fetchUsers(this.activeView);
+          this.showForm = false;
+          this.editingUser = null;
+          alert('✅ User saved successfully!');
+        } catch (err) {
+          this.error = err.message || 'Failed to save user.';
+        } finally {
+          this.loading = false;
+        }
+      },
+
+      async deleteUser(id) {
+        if (!confirm('Are you sure you want to delete this user?')) {
+          return;
+        }
+
+        this.loading = true;
+        this.error = null;
+
+        try {
+          const token = localStorage.getItem('jwt_token');
+          let roleEndpoint = this.activeView === 'kitUsers' ? 'kit' : 'system';
+
+          // Use the correct AdminUsersController path
+          const baseUrl = `https://localhost:7122/api/admin/users/${roleEndpoint}`;
+
+          const response = await fetch(`${baseUrl}/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Failed to delete user.');
+          }
+
+          await this.fetchUsers(this.activeView);
+          alert('🗑️ User deleted successfully!');
+        } catch (err) {
+          this.error = err.message || 'Failed to delete user.';
+        } finally {
+          this.loading = false;
+        }
       }
     }
   };
 </script>
 
 <style scoped>
+  /* Blue Color Palette Definitions (Used Tailwind CSS values as a guide) */
+  /* Primary Blue: #007bff (A vibrant blue) */
+  /* Dark Blue: #0056b3 (For hover states) */
+  /* Very Dark Blue/Navy: #002e4d (For titles) */
+  /* Light Blue Background: #f0f7ff (or similar light wash) */
+
+  /* ------------------- MAIN LAYOUT ------------------- */
   .dashboard-wrapper {
     display: flex;
     min-height: 100vh;
     width: 100vw;
     margin: 0;
     padding: 0;
-    background-color: #f7fafc;
-    border-radius: 0;
-    box-sizing: border-box;
-    box-shadow: none;
+    /* 🔵 CHANGE: Light blue/white gradient */
+    background: linear-gradient(135deg, #eaf3ff, #f9ffff);
     overflow-x: hidden;
-    position: relative;
   }
-
-  .sidebar-toggle {
-    position: fixed;
-    top: 80px;
-    left: 15px;
-    z-index: 1100;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    width: 28px;
-    height: 22px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-  }
-
-    .sidebar-toggle .bar {
-      height: 4px;
-      background-color: #fff;
-      border-radius: 2px;
-      transition: all 0.3s ease;
-    }
 
   .dashboard-container {
     flex-grow: 1;
     padding: 40px 35px;
     overflow-y: auto;
-    position: relative;
     font-family: 'Inter', sans-serif;
     color: #2d3748;
   }
 
+  /* ------------------- HEADER ------------------- */
   .welcome-title {
     font-size: 2.8rem;
     font-weight: 800;
     margin-bottom: 10px;
-    color: #004d4d;
-    letter-spacing: 0.5px;
+    /* 🔵 CHANGE: Dark Navy Blue */
+    color: #002e4d;
   }
 
   .role-info {
@@ -260,6 +367,7 @@
     padding-bottom: 20px;
   }
 
+  /* ------------------- TABLE ------------------- */
   .section-title {
     font-weight: 700;
     color: #2d3748;
@@ -267,130 +375,237 @@
     margin-bottom: 20px;
   }
 
-  .add-btn,
-  .save-btn,
-  .cancel-btn,
-  .edit-btn,
-  .delete-btn,
-  .action-button {
-    border-radius: 8px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
-  }
-
   .add-btn {
-    background: #008080;
+    /* 🔵 CHANGE: Primary Blue */
+    background: #007bff;
     color: #fff;
     padding: 12px 20px;
     border: none;
+    border-radius: 10px;
     cursor: pointer;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 12px rgba(0, 128, 128, 0.3);
+    font-weight: 700;
+    /* 🔵 CHANGE: Blue shadow */
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.25);
+    transition: all 0.3s ease;
   }
 
     .add-btn:hover {
-      background: #005959;
-      box-shadow: 0 6px 15px rgba(0, 89, 89, 0.5);
-    }
-
-  .save-btn {
-    background: #22c55e;
-    color: white;
-    padding: 12px 22px;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
-  }
-
-    .save-btn:hover {
-      background: #16a34a;
-      box-shadow: 0 6px 18px rgba(22, 163, 74, 0.5);
-    }
-
-  .cancel-btn {
-    background: #94a3b8;
-    color: white;
-    border: none;
-    cursor: pointer;
-    padding: 12px 22px;
-    margin-left: 15px;
-  }
-
-    .cancel-btn:hover {
-      background: #64748b;
-    }
-
-  .edit-btn {
-    background: #0ea5e9;
-    color: white;
-    padding: 8px 14px;
-  }
-
-    .edit-btn:hover {
-      background: #0284c7;
-    }
-
-  .delete-btn {
-    background: #ef4444;
-    color: white;
-    padding: 8px 14px;
-  }
-
-    .delete-btn:hover {
-      background: #b91c1c;
+      /* 🔵 CHANGE: Darker Blue on hover */
+      background: #0056b3;
+      transform: translateY(-2px);
     }
 
   .user-table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0 10px;
-    margin-bottom: 50px;
+    margin-top: 20px;
   }
 
     .user-table th {
       text-align: left;
-      padding: 18px 15px;
+      padding: 12px;
       color: #475569;
-      font-weight: 700;
     }
 
     .user-table td {
       background: white;
       padding: 15px;
-      box-shadow: 0 4px 6px rgb(160 174 192 / 15%);
       border-radius: 8px;
-      vertical-align: middle;
-      color: #334155;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
     }
 
-  form input {
-    border: 1.5px solid #cbd5e1;
-    padding: 12px 15px;
+  /* Edit/Delete Buttons (Kept Yellow/Red as they are standard indicators) */
+  .edit-btn, .delete-btn {
+    padding: 8px 15px;
+    margin-right: 5px;
+    border: none;
     border-radius: 8px;
-    font-size: 1rem;
-    transition: border-color 0.3s ease;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .edit-btn {
+    background-color: #fcd34d; /* Yellow-400 */
+    color: #78350f; /* Amber-900 */
+  }
+
+    .edit-btn:hover {
+      background-color: #fbbd23;
+    }
+
+  .delete-btn {
+    background-color: #f87171; /* Red-400 */
+    color: #7f1d1d; /* Red-900 */
+  }
+
+    .delete-btn:hover {
+      background-color: #ef4444;
+    }
+
+  /* Citizen Records Section Styling */
+  .metric-number {
+    font-size: 3rem;
+    font-weight: 800;
+    /* 🔵 CHANGE: Primary Blue */
+    color: #007bff;
+    margin-bottom: 10px;
+  }
+
+  .action-button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.3s ease;
+  }
+
+    .action-button.success {
+      /* 🔵 CHANGE: Secondary Blue (used for 'success' action) */
+      background-color: #1e87f0;
+      color: white;
+    }
+
+      .action-button.success:hover {
+        /* 🔵 CHANGE: Darker Secondary Blue */
+        background-color: #0f62c6;
+      }
+
+  /* ------------------- POPUP MODAL ------------------- */
+  .form-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    box-sizing: border-box;
+    height: 100%;
+    background: rgba(10, 20, 25, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    backdrop-filter: blur(6px);
+    opacity: 1;
+    transition: opacity 0.25s ease;
+  }
+
+    .form-overlay.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+  .form-popup {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(12px);
+    padding: 35px 40px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 450px;
+    /* 🔵 CHANGE: Blue shadow */
+    box-shadow: 0 10px 30px rgba(0, 123, 255, 0.25);
+    animation: popupIn 0.25s ease forwards;
+    /* 🔵 CHANGE: Light blue border */
+    border: 2px solid rgba(0, 123, 255, 0.15);
+  }
+
+
+  @keyframes popupIn {
+    from {
+      transform: translateY(-20px);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .form-popup h3 {
+    text-align: center;
+    margin-bottom: 25px;
+    /* 🔵 CHANGE: Dark Navy Blue */
+    color: #002e4d;
+    font-weight: 700;
+  }
+
+  .form-popup label {
+    display: block;
+    font-weight: 600;
+    margin-top: 10px;
+    color: #334155;
+  }
+
+  .form-popup input,
+  .form-popup select {
+    width: 100%;
+    padding: 12px 15px;
+    border-radius: 10px;
+    border: 1.5px solid #cbd5e1;
+    font-size: 1rem;
     margin-top: 6px;
+    transition: border-color 0.3s ease;
   }
 
-    form input:focus {
+    .form-popup input:focus,
+    .form-popup select:focus {
       outline: none;
-      border-color: #008080;
-      box-shadow: 0 0 6px #008080aa;
+      /* 🔵 CHANGE: Primary Blue focus */
+      border-color: #007bff;
+      /* 🔵 CHANGE: Primary Blue shadow */
+      box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
     }
 
-  .form-overlay,
-  .loading-overlay {
-    backdrop-filter: blur(4px);
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 25px;
   }
 
-    .loading-overlay p {
-      color: #008080;
-      font-size: 1.2rem;
-      font-weight: 700;
+  /* ------------------- BUTTONS ------------------- */
+  /* Kept save/cancel as standard success/neutral colors */
+  .save-btn {
+    background: #22c55e;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+    .save-btn:hover {
+      background: #16a34a;
+      transform: scale(1.05);
     }
+
+  .cancel-btn {
+    background: #94a3b8;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+    .cancel-btn:hover {
+      background: #64748b;
+      transform: scale(1.05);
+    }
+
+  /* ------------------- ERROR / LOADING ------------------- */
+  .loading-overlay p {
+    /* 🔵 CHANGE: Primary Blue loading text */
+    color: #007bff;
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
 
   .error-box {
     background: #fee2e2;
@@ -401,26 +616,5 @@
     font-weight: 600;
     border: 1px solid #fca5a5;
     text-align: center;
-  }
-
-  @media (max-width: 768px) {
-    .dashboard-wrapper {
-      flex-direction: column;
-    }
-
-    .sidebar {
-      width: 100%;
-      height: auto;
-      border-radius: 0 0 10px 10px;
-    }
-
-    .dashboard-container {
-      padding: 1rem 1.5rem;
-    }
-
-    .sidebar-toggle {
-      top: 10px;
-      left: 10px;
-    }
   }
 </style>

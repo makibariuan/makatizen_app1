@@ -15,7 +15,7 @@
       "launchBrowser": true,
       "launchUrl": "swagger",
       // --- CHANGED: 0.0.0.0 will listen on all interfaces ---
-      "applicationUrl": "http://0.0.0.0:5007",
+      "applicationUrl": "http://localhost:5007",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "Microsoft.AspNetCore.SpaProxy"
@@ -27,7 +27,7 @@
       "launchBrowser": true,
       "launchUrl": "swagger",
       // --- CHANGED: Use 192.168.1.176 for the LAN/HTTP address to be explicit ---
-      "applicationUrl": "https://localhost:7122;http://192.168.1.176:5007",
+      "applicationUrl": "https://localhost:7122", ////http://192.168.1.176:5007
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "Microsoft.AspNetCore.SpaProxy"
